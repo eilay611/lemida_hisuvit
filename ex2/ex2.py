@@ -295,13 +295,18 @@ the_parameters_to_choose_for_each_model = add_hyper_tuning(
 
 
 #select_featchers_by_lasso_df = select_featchers_by_lasso(X_train,y_train)
-"""
+
 import autosklearn.classification
 cls = autosklearn.classification.AutoSklearnClassifier()
-cls.fit(X_train, y_train)
-predictions = cls.predict(X_test)
-print(accuracy_score(y_test,predictions))
-"""
+cls.fit(X, y)
+predictions = cls.predict(the_test)
+prediction_df = pd.DataFrame(predictions,columns=["y_pred"],index=the_test.index)
+prediction_df.name = "ID"
+prediction_df.to_csv(os.path.join(PROJECT_DIR,"autosklearn"+".csv"))
+the_parameters_to_choose_for_each_model["autosklearn"]= {"Parameters":np.nan,
+                                "best_cv_score":np.nan,
+                                "prediction":predictions,
+                                "prediction_df":prediction_df}
 
 
 a_file = open(os.path.join(PROJECT_DIR, "the_parameters_to_choose_for_each_model.pkl"), "wb")
