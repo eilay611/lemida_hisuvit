@@ -6,6 +6,7 @@ from random import randint
 import pandas as pd
 import numpy as np
 from sklearn import datasets
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
 from sklearn.metrics import mean_squared_error
@@ -388,6 +389,8 @@ from sklearn.preprocessing import StandardScaler
 # Setup the pipeline steps: steps
 steps = [('scaler', StandardScaler()),
         ('knn', KNeighborsClassifier())]
+scaler = StandardScaler()
+data = pd.DataFrame(scaler.fit_transform(X),columns=X.columns)
 
 # Create the pipeline: pipeline
 pipeline = Pipeline(steps)
@@ -493,11 +496,65 @@ def select_featchers_by_lasso(X_train, y_train):
     return lasso_coef
 
 
+"""
+change TEXT TO tfidf
+"""
+# Create the vectorizer method
+tfidf_vec = TfidfVectorizer()
+text = np.array(["it was a really hard day","me is a nice person"])
+# Transform the text into tf-idf vectors when it is text like description
+text_tfidf = tfidf_vec.fit_transform(text)
+def return_weights(text_tfidf,tfidf_vec,vector_index):
+    vocab = {v:k for k,v in tfidf_vec.vocabulary_.items()}
+    zipped_row = dict(zip(text_tfidf[vector_index].indices,text_tfidf[vector_index].data))
+    return {vocab[i]:zipped_row[i] for i in tfidf_vec[vector_index].indices}
 
 
+# Add in the rest of the parameters
+def return_weights_topn(tfidf_vec, text_tfidf, vector_index, top_n):
+    vocab = {v:k for k,v in tfidf_vec.vocabulary_.items()}
+    original_vocab = tfidf_vec.vocabulary_
+    zipped = dict(zip(text_tfidf[vector_index].indices, text_tfidf[vector_index].data))
+
+    # Let's transform that zipped dict into a series
+    zipped_series = pd.Series({vocab[i]: zipped[i] for i in text_tfidf[vector_index].indices})
+
+    # Let's sort the series to pull out the top n weighted words
+    zipped_index = zipped_series.sort_values(ascending=False)[:top_n].index
+    return [original_vocab[i] for i in zipped_index]
 
 
+def words_to_filter(tfidf_vec, text_tfidf, top_n):
+    vocab = {v:k for k,v in tfidf_vec.vocabulary_.items()}
+    original_vocab = tfidf_vec.vocabulary_
+    filter_list = []
+    for i in range(0, text_tfidf.shape[0]):
+        # Here we'll call the function from the previous exercise, and extend the list we're creating
+        filtered = return_weights(vocab, original_vocab, text_tfidf, i, top_n)
+        filter_list.extend(filtered)
+    # Return the list in a set, so we don't get duplicate word indices
+    return set(filter_list)
 
+# By converting filtered_words back to a list, we can use it to filter the columns in the text vector
+filtered_text = text_tfidf[:, list(words_to_filter(tfidf_vec, text_tfidf, 3))]
+# Split the dataset according to the class distribution of category_desc, using the filtered_text vector
+train_X, test_X, train_y, test_y = train_test_split(filtered_text.toarray(), y, stratify=y)
+from sklearn.naive_bayes import GaussianNB as nb
+# Fit the model to the training data
+nb.fit(train_X,train_y)
 
+# Print out the model's accuracy
+print(nb.score(test_X,test_y))
+"""
+Take a minute to look at the correlations. 
+Identify a column where the correlation value is greater than 0.75 
+at least twice and store it in the to_drop variable.
+"""
 
-
+"""
+PCA
+"""
+from sklearn.decomposition import PCA
+pca=PCA()
+data_pca=pca.fit_transform(X,y)
+print(pca.explained_variance_ratio_)
