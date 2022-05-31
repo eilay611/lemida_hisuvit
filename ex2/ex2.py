@@ -21,22 +21,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import Lasso
 from sklearn.neural_network import MLPClassifier
 sys.path.insert(0, "/home/oem/PycharmProjects/LielTools")
-#sys.path.insert(0, "C:\\Users\\Eilay Koren\\PycharmProjects\\lab_projects\\LielTools_4")
-import PlotTools
-import DataTools
-import FileTools
-import importlib
-
-import types
-from deepchecks.tabular.suites import full_suite
-from deepchecks.tabular import Dataset
-from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedKFold
-from sklearn.metrics import roc_curve
-from sklearn.metrics import auc
-from sklearn.metrics import roc_auc_score
-from sklearn.metrics import mean_squared_error as MSE  # numerical prediction
-from rdkit import Chem
 
 
 the_parameters_to_choose_for_each_model = {}
