@@ -2,38 +2,21 @@ import pandas as pd
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import label_binarize
-from pandas_profiling import ProfileReport
-from matplotlib import cm
-from mpl_toolkits.mplot3d import axes3d
 import pickle
 from sklearn.naive_bayes import GaussianNB
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.model_selection import GridSearchCV
 from sklearn.gaussian_process.kernels import RBF, DotProduct
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 from sklearn.svm import SVC
-
-from sklearn.tree import DecisionTreeRegressor
-import seaborn as sns
-from sklearn.datasets import load_iris
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.metrics import accuracy_score
 from sklearn.tree import DecisionTreeClassifier
-from sklearn import tree
 from sklearn.model_selection import train_test_split
 import random
 import time
 import os
 import sys
-from sklearn.preprocessing import scale
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import Lasso
 from sklearn.neural_network import MLPClassifier
