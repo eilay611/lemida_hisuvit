@@ -131,6 +131,7 @@ for i in range(len(fetcher_high_corlate .columns)):
 X = X.drop(correlated_features,axis=1)
 the_test = the_test.drop(correlated_features,axis=1)
 
+
 # ------------------------------------------------------------------------ </editor-fold>
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0,stratify=y)
 cv = RepeatedKFold(n_splits=5, n_repeats=2,
@@ -281,3 +282,34 @@ the_parameters_to_choose_for_each_model["autosklearn"]= {"Parameters":np.nan,
 a_file = open(os.path.join(PROJECT_DIR, "the_parameters_to_choose_for_each_model.pkl"), "wb")
 pickle.dump(the_parameters_to_choose_for_each_model, a_file)
 a_file.close()
+
+
+# ---------------------------------XGBoost------------------------------- <editor-fold>
+
+
+from xgboost import XGBClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import log_loss
+model = XGBClassifier()
+learning_rate = [0.0001,0.01,0.1,0.2,0.3]
+param_grid = dict(learning_rate=learning_rate)
+kfold = StratifiedKFold(n_splits=10,shuffle=True,random_state=7)
+
+
+grid_search = GridSearchCV(model,param_grid,scoring='neg_log_loss',n_jobs=1,cv=kfold)
+result = grid_search.fit(X,y)
+print("Best: %f using %s"%(result.best_score_,result.best_params_))
+means,stdevs = [],[]
+
+
+for params,mean_score,scores in result.grid_score_:
+    stdev = scores.std()
+    means.append(mean_score)
+    stdevs.append(stdev)
+    print(mean_score,stdev,params)
+
+
+
+
+# ------------------------------------------------------------------------ </editor-fold>
