@@ -131,6 +131,7 @@ for i in range(len(fetcher_high_corlate .columns)):
 X = X.drop(correlated_features,axis=1)
 the_test = the_test.drop(correlated_features,axis=1)
 
+
 # ------------------------------------------------------------------------ </editor-fold>
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0,stratify=y)
 cv = RepeatedKFold(n_splits=5, n_repeats=2,
@@ -138,7 +139,7 @@ cv = RepeatedKFold(n_splits=5, n_repeats=2,
 
 
 def add_hyper_tuning(the_parameters_to_choose_for_each_model,model,param_grid,cv):
-    model_name=str(type(knn)).rstrip("'>").split(".")[-1]
+    model_name=str(type(model)).rstrip("'>").split(".")[-1]
     try:
         the_parameters_to_choose_for_each_model[model_name]
     except KeyError:
@@ -148,6 +149,7 @@ def add_hyper_tuning(the_parameters_to_choose_for_each_model,model,param_grid,cv
         prediction_df = pd.DataFrame(prediction,columns=["y_pred"],index=the_test.index)
         prediction_df.name = "ID"
         prediction_df.to_csv(os.path.join(PROJECT_DIR,model_name+".csv"))
+        print(str(os.path.join(PROJECT_DIR,model_name+".csv")))
         inner_parametes_dict = {"Parameters":grid_cv.best_params_,
                                 "best_cv_score":grid_cv.best_score_,
                                 "prediction":prediction,
@@ -155,27 +157,27 @@ def add_hyper_tuning(the_parameters_to_choose_for_each_model,model,param_grid,cv
         the_parameters_to_choose_for_each_model[model_name] = inner_parametes_dict
     return the_parameters_to_choose_for_each_model
 
-knn = KNeighborsClassifier()
-n_space = list(range(1, 31))
-param_grid = {'n_neighbors': n_space}
-the_parameters_to_choose_for_each_model = add_hyper_tuning(
-    the_parameters_to_choose_for_each_model=the_parameters_to_choose_for_each_model,
-    model=knn,
-    param_grid=param_grid,
-    cv=cv)
-
-logreg = LogisticRegression()
-c_space = np.logspace(-5, 8, 15)
-param_grid = {'C': c_space, 'penalty': ['l1', 'l2']}
-the_parameters_to_choose_for_each_model = add_hyper_tuning(
-    the_parameters_to_choose_for_each_model=the_parameters_to_choose_for_each_model,
-    model=logreg,
-    param_grid=param_grid,
-    cv=cv)
+# knn = KNeighborsClassifier()
+# n_space = list(range(1, 31))
+# param_grid = {'n_neighbors': n_space}
+# the_parameters_to_choose_for_each_model = add_hyper_tuning(
+#     the_parameters_to_choose_for_each_model=the_parameters_to_choose_for_each_model,
+#     model=knn,
+#     param_grid=param_grid,
+#     cv=cv)
+#
+# logreg = LogisticRegression()
+# c_space = np.logspace(-5, 8, 15)
+# param_grid = {'C': c_space, 'penalty': ['l1', 'l2']}
+# the_parameters_to_choose_for_each_model = add_hyper_tuning(
+#     the_parameters_to_choose_for_each_model=the_parameters_to_choose_for_each_model,
+#     model=logreg,
+#     param_grid=param_grid,
+#     cv=cv)
 
 tree = DecisionTreeClassifier()
-param_grid = {"max_depth": range[1, 20],
-              "min_samples_leaf": range[1, 20],
+param_grid = {"max_depth": range(1, 20),
+              "min_samples_leaf": range(1, 20),
               "criterion": ["gini", "entropy"]}
 the_parameters_to_choose_for_each_model = add_hyper_tuning(
     the_parameters_to_choose_for_each_model=the_parameters_to_choose_for_each_model,
@@ -280,3 +282,34 @@ the_parameters_to_choose_for_each_model["autosklearn"]= {"Parameters":np.nan,
 a_file = open(os.path.join(PROJECT_DIR, "the_parameters_to_choose_for_each_model.pkl"), "wb")
 pickle.dump(the_parameters_to_choose_for_each_model, a_file)
 a_file.close()
+
+
+# ---------------------------------XGBoost------------------------------- <editor-fold>
+
+
+from xgboost import XGBClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import log_loss
+model = XGBClassifier()
+learning_rate = [0.0001,0.01,0.1,0.2,0.3]
+param_grid = dict(learning_rate=learning_rate)
+kfold = StratifiedKFold(n_splits=10,shuffle=True,random_state=7)
+
+
+grid_search = GridSearchCV(model,param_grid,scoring='neg_log_loss',n_jobs=1,cv=kfold)
+result = grid_search.fit(X,y)
+print("Best: %f using %s"%(result.best_score_,result.best_params_))
+means,stdevs = [],[]
+
+
+for params,mean_score,scores in result.grid_score_:
+    stdev = scores.std()
+    means.append(mean_score)
+    stdevs.append(stdev)
+    print(mean_score,stdev,params)
+
+
+
+
+# ------------------------------------------------------------------------ </editor-fold>
