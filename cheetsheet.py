@@ -2,7 +2,8 @@
 here i will save all the base lines that are importent hopefully well documented for you future Eilay
 """
 from random import randint
-
+import tensorflow as tf
+from tensorflow import keras, matmul, Variable
 import pandas as pd
 import numpy as np
 from sklearn import datasets
@@ -558,3 +559,74 @@ from sklearn.decomposition import PCA
 pca=PCA()
 data_pca=pca.fit_transform(X,y)
 print(pca.explained_variance_ratio_)
+
+
+
+
+
+
+
+
+"""
+tensor flow
+sigmoid for output of binary
+softmax for output lair > 2 classes
+relo for all hidden lair
+
+SGD(stochasic gardient decent) optimizer training rate from 0.01-0.5. simple and easy.
+RMS(root mean squared) for each featcher differnt learning rate.good for alot of dimentions.allow build momentum. and decay(low value mean prevent accumalating over a long time)
+big momentum = less local minimum[0-1]
+Adam(adaotivee moment), beta1 small will make to decay faster. better in defult.
+
+random.normal just normal distribution
+random.truncated_normal just normal distribution with less קיצוני
+
+"""
+
+opt = keras.optimizers.SGD(learning_rate=0.01)
+opt.minimize(lambda: loss_function(x_1), var_list=[x_1])
+
+weight = tf.Varible(tf.random.normal([500,500]))
+
+num_of_output=5
+dense1 = tf.keras.layers.Dense(num_of_output,activation ="relu",kernel_initializer="zeros")(input_feather)
+dropout = tf.keras.layers.Dropout(0.25)(dense1)#dropout 25% of connection to avoid overfit
+dense2 =  tf.keras.layers.Dense(num_of_output,activation ="relu",kernel_initializer="zeros")(dropout)
+
+
+"""
+all together
+"""
+# Define the layer 1 weights
+w1 = Variable(random.normal([23, 7]))
+# Initialize the layer 1 bias
+b1 = Variable(ones([7]))
+# Define the layer 2 weights
+w2 = Variable(random.normal([7, 1]))
+# Define the layer 2 bias
+b2 = Variable(0.0)
+
+# Define the model
+def model(w1, b1, w2, b2, features = borrower_features):
+	# Apply relu activation functions to layer 1
+	layer1 = keras.activations.relu(matmul(features, w1) + b1)
+    # Apply dropout rate of 0.25
+	dropout = keras.layers.Dropout(0.25)(layer1)
+	return keras.activations.sigmoid(matmul(dropout, w2) + b2)
+
+# Define the loss function
+def loss_function(w1, b1, w2, b2, features = borrower_features, targets = default):
+	predictions = model(w1, b1, w2, b2)
+	# Pass targets and predictions to the cross entropy loss
+	return keras.losses.binary_crossentropy(targets, predictions)
+# Train the model
+for j in range(100):
+    # Complete the optimizer
+	opt.minimize(lambda: loss_function(w1, b1, w2, b2),
+                 var_list=[w1, b1, w2, b2])
+
+# Make predictions with model using test features
+model_predictions = model(w1, b1, w2, b2, test_features)
+
+# Construct the confusion matrix
+confusion_matrix(test_targets, model_predictions)
