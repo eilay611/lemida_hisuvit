@@ -114,6 +114,8 @@ random.seed(SEED)
 
 # --------------------------------""" load data """----------------------- <editor-fold>
 data = pd.read_csv(os.path.join(PROJECT_DIR, "X_y_train.csv"))
+number_of_unique_per_fitcher = data.apply(lambda col: col.nunique(), axis=0)
+data = data.drop(number_of_unique_per_fitcher.loc[number_of_unique_per_fitcher < 2].index, axis=1)
 
 #  cheaking if there is null cells
 print(data.isnull().sum().sum())
@@ -139,14 +141,13 @@ scaler_list = []
 for col in data.columns:
     if likely_cat[col]:
         cat_list.append(col)
-
     else:
         scaler_list.append(col)
 
 scaler = StandardScaler()
 
 ##################### for train ##############################
-data_scalar = pd.DataFrame(scaler.fit_transform(data[scaler_list]))
+data_scalar = pd.DataFrame(scaler.fit_transform(data[scaler_list]),columns=scaler_list)
 
 # creat dummis for all the categorical values
 
@@ -154,6 +155,10 @@ all_dummy_df = pd.get_dummies(data=data, columns=cat_list[:-1], drop_first=True)
 all_dummy_df = data[cat_list[:-1]]
 
 con_df = pd.concat([all_dummy_df, data_scalar], axis=1)
+#change all the colomns name to be sort by X1 X2...
+con_df.columns = con_df.columns.map(lambda x: int(x[1:]))
+con_df = con_df.sort_index(axis=1)
+con_df.columns = con_df.columns.map(lambda x: "X"+str(x))
 
 # data2 = pd.read_csv(os.path.join(PROJECT_DIR, "tp53_features_train_smiles.csv"), index_col=0)
 # scaler = StandardScaler()
@@ -175,7 +180,7 @@ if os.path.exists(os.path.join(PROJECT_DIR, "the_parameters_to_choose_for_each_m
 ##################### for test ##############################
 # new_the_test = the_test.iloc[:,1:]
 new_the_test = the_test.reset_index(drop=True)
-data_scalar_test = pd.DataFrame(scaler.fit_transform(new_the_test[scaler_list]))
+data_scalar_test = pd.DataFrame(scaler.fit_transform(new_the_test[scaler_list]),columns=scaler_list)
 
 # creat dummis for all the categorical values
 
@@ -184,6 +189,11 @@ all_dummy_df_test = new_the_test[cat_list[:-1]]
 
 x_test = pd.concat([all_dummy_df_test, data_scalar_test], axis=1)
 x_test.set_index(the_test.index,inplace=True)
+#change all the colomns name to be sort by X1 X2...
+x_test.columns = x_test.columns.map(lambda x: int(x[1:]))
+x_test = x_test.sort_index(axis=1)
+x_test.columns = x_test.columns.map(lambda x: "X"+str(x))
+
 print(X.shape)
 print(x_test.shape)
 
@@ -195,8 +205,6 @@ print(x_test.shape)
 describtion = data.describe().T
 info = data.info()
 
-number_of_unique_per_fitcher = data.apply(lambda col: col.nunique(), axis=0)
-data = data.drop(number_of_unique_per_fitcher.loc[number_of_unique_per_fitcher < 2].index, axis=1)
 
 if os.path.exists(os.path.join(PROJECT_DIR, "got_to_know_data", "corr_matrix_pearson.csv")):
     pearson_corr = pd.read_csv(os.path.join(PROJECT_DIR, "got_to_know_data", "corr_matrix_pearson.csv"), index_col=0)
@@ -268,7 +276,11 @@ def add_hyper_tuning_lasso_selected(the_parameters_to_choose_for_each_model,mode
                                 "prediction":prediction,
                                 "prediction_df":prediction_df}
         the_parameters_to_choose_for_each_model[model_name] = inner_parametes_dict
+    a_file = open(os.path.join(PROJECT_DIR, "the_parameters_to_choose_for_each_model.pkl"), "ab")
+    pickle.dump(the_parameters_to_choose_for_each_model, a_file)
+    a_file.close()
     return the_parameters_to_choose_for_each_model
+
 knn = KNeighborsClassifier()
 n_space = list(range(1, 31))
 param_grid = {'n_neighbors': n_space}
@@ -391,7 +403,7 @@ the_parameters_to_choose_for_each_model["autosklearn"] = {"Parameters": np.nan,
                                                           "prediction": predictions,
                                                           "prediction_df": prediction_df}
 
-a_file = open(os.path.join(PROJECT_DIR, "the_parameters_to_choose_for_each_model.pkl"), "wb")
+a_file = open(os.path.join(PROJECT_DIR, "the_parameters_to_choose_for_each_model.pkl"), "ab")
 pickle.dump(the_parameters_to_choose_for_each_model, a_file)
 a_file.close()
 
