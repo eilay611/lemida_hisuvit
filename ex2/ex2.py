@@ -65,6 +65,12 @@ def select_featchers_by_lasso(X_train, y_train):
 
     return lasso_coef,lasso_coef_orig
 
+def is_it_a_categorial_col(col):
+    for num in col:
+        if num - int(num) != 0:
+            return False
+    return True
+
 
 # ------------------------------------------------------------------------ </editor-fold>
 
@@ -84,8 +90,11 @@ scaler = StandardScaler()
 data_orig = data.copy()
 X = data.iloc[:, :-1]
 y = data.iloc[:, -1]
-X = pd.DataFrame(scaler.fit_transform(X),columns=X.columns)
+
+select_featchers_by_lasso_df = select_featchers_by_lasso(X,y)
+X_by_lasso = X.loc[:,select_featchers_by_lasso_df[0].index]
 the_test = pd.read_csv(os.path.join(PROJECT_DIR, "X_test.csv"), index_col=0)
+the_test_by_lasso = the_test.loc[:,select_featchers_by_lasso_df[0].index]
 objects = []
 if os.path.exists(os.path.join(PROJECT_DIR, "the_parameters_to_choose_for_each_model.pkl")):
     with (open(os.path.join(PROJECT_DIR, "the_parameters_to_choose_for_each_model.pkl"), "rb")) as openfile:
@@ -101,9 +110,23 @@ if os.path.exists(os.path.join(PROJECT_DIR, "the_parameters_to_choose_for_each_m
 describtion = data.describe().T
 info = data.info()
 
+is_it_a_categorial_col_db = X.apply(is_it_a_categorial_col,axis=0)
+#X = pd.DataFrame(scaler.fit_transform(X),columns=X.columns)
+
+
+"""
+getting 1 unique per fitcher out
+"""
+#<editor-fold>
 number_of_unique_per_fitcher = data.apply(lambda col: col.nunique(),axis=0)
 data = data.drop(number_of_unique_per_fitcher.loc[number_of_unique_per_fitcher<2].index,axis=1)
+#</editor-fold>
 
+
+"""
+getting corelation out
+"""
+#<editor-fold>
 if os.path.exists(os.path.join(PROJECT_DIR,"got_to_know_data","corr_matrix_pearson.csv")):
     pearson_corr = pd.read_csv(os.path.join(PROJECT_DIR,"got_to_know_data","corr_matrix_pearson.csv"),index_col=0)
 else:
@@ -130,7 +153,10 @@ for i in range(len(fetcher_high_corlate .columns)):
             correlated_features.add(colname)
 X = X.drop(correlated_features,axis=1)
 the_test = the_test.drop(correlated_features,axis=1)
-
+"""
+getting corelation out
+"""
+#</editor-fold>
 
 # ------------------------------------------------------------------------ </editor-fold>
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0,stratify=y)
@@ -143,7 +169,7 @@ def add_hyper_tuning(the_parameters_to_choose_for_each_model,model,param_grid,cv
     try:
         the_parameters_to_choose_for_each_model[model_name]
     except KeyError:
-        grid_cv = GridSearchCV(model, param_grid, cv=cv,scoring="accuracy")
+        grid_cv = GridSearchCV(model, param_grid, cv=cv,scoring="roc_auc_ovo_weighted")
         grid_cv.fit(X, y)
         prediction = grid_cv.predict(the_test)
         prediction_df = pd.DataFrame(prediction,columns=["y_pred"],index=the_test.index)
@@ -157,23 +183,41 @@ def add_hyper_tuning(the_parameters_to_choose_for_each_model,model,param_grid,cv
         the_parameters_to_choose_for_each_model[model_name] = inner_parametes_dict
     return the_parameters_to_choose_for_each_model
 
-# knn = KNeighborsClassifier()
-# n_space = list(range(1, 31))
-# param_grid = {'n_neighbors': n_space}
-# the_parameters_to_choose_for_each_model = add_hyper_tuning(
-#     the_parameters_to_choose_for_each_model=the_parameters_to_choose_for_each_model,
-#     model=knn,
-#     param_grid=param_grid,
-#     cv=cv)
-#
-# logreg = LogisticRegression()
-# c_space = np.logspace(-5, 8, 15)
-# param_grid = {'C': c_space, 'penalty': ['l1', 'l2']}
-# the_parameters_to_choose_for_each_model = add_hyper_tuning(
-#     the_parameters_to_choose_for_each_model=the_parameters_to_choose_for_each_model,
-#     model=logreg,
-#     param_grid=param_grid,
-#     cv=cv)
+def add_hyper_tuning_lasso_selected(the_parameters_to_choose_for_each_model,model,param_grid,cv):
+    model_name=str(type(model)).rstrip("'>").split(".")[-1]
+    try:
+        the_parameters_to_choose_for_each_model[model_name]
+    except KeyError:
+        grid_cv = GridSearchCV(model, param_grid, cv=cv,scoring="roc_auc_ovo_weighted")
+        grid_cv.fit(X_by_lasso, y)
+        prediction = grid_cv.predict(the_test_by_lasso)
+        prediction_df = pd.DataFrame(prediction,columns=["y_pred"],index=the_test.index)
+        prediction_df.name = "ID"
+        prediction_df.to_csv(os.path.join(PROJECT_DIR,model_name+"lasso.csv"))
+        print(str(os.path.join(PROJECT_DIR,model_name+"lasso.csv")))
+        inner_parametes_dict = {"Parameters":grid_cv.best_params_,
+                                "best_cv_score":grid_cv.best_score_,
+                                "prediction":prediction,
+                                "prediction_df":prediction_df}
+        the_parameters_to_choose_for_each_model[model_name] = inner_parametes_dict
+    return the_parameters_to_choose_for_each_model
+knn = KNeighborsClassifier()
+n_space = list(range(1, 31))
+param_grid = {'n_neighbors': n_space}
+the_parameters_to_choose_for_each_model = add_hyper_tuning(
+    the_parameters_to_choose_for_each_model=the_parameters_to_choose_for_each_model,
+    model=knn,
+    param_grid=param_grid,
+    cv=cv)
+
+logreg = LogisticRegression()
+c_space = np.logspace(-5, 8, 15)
+param_grid = {'C': c_space, 'penalty': ['l1', 'l2']}
+the_parameters_to_choose_for_each_model = add_hyper_tuning(
+    the_parameters_to_choose_for_each_model=the_parameters_to_choose_for_each_model,
+    model=logreg,
+    param_grid=param_grid,
+    cv=cv)
 
 tree = DecisionTreeClassifier()
 param_grid = {"max_depth": range(1, 20),
