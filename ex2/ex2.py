@@ -115,7 +115,8 @@ random.seed(SEED)
 # --------------------------------""" load data """----------------------- <editor-fold>
 data = pd.read_csv(os.path.join(PROJECT_DIR, "X_y_train.csv"))
 number_of_unique_per_fitcher = data.apply(lambda col: col.nunique(), axis=0)
-data = data.drop(number_of_unique_per_fitcher.loc[number_of_unique_per_fitcher < 2].index, axis=1)
+columns_with_1_value = number_of_unique_per_fitcher.loc[number_of_unique_per_fitcher < 2].index
+data = data.drop(columns_with_1_value, axis=1)
 
 #  cheaking if there is null cells
 print(data.isnull().sum().sum())
@@ -169,6 +170,7 @@ y = data.iloc[:, -1]
 select_featchers_by_lasso_df = select_featchers_by_lasso(X,y)
 X_by_lasso = X.loc[:,select_featchers_by_lasso_df[0].index]
 the_test = pd.read_csv(os.path.join(PROJECT_DIR, "X_test.csv"), index_col=0)
+the_test = the_test.drop(columns_with_1_value,axis=1)
 the_test_by_lasso = the_test.loc[:,select_featchers_by_lasso_df[0].index]
 objects = []
 if os.path.exists(os.path.join(PROJECT_DIR, "the_parameters_to_choose_for_each_model.pkl")):
@@ -193,7 +195,7 @@ x_test.set_index(the_test.index,inplace=True)
 x_test.columns = x_test.columns.map(lambda x: int(x[1:]))
 x_test = x_test.sort_index(axis=1)
 x_test.columns = x_test.columns.map(lambda x: "X"+str(x))
-
+print("no more one value colomns")
 print(X.shape)
 print(x_test.shape)
 
@@ -232,7 +234,9 @@ for i in range(len(fetcher_high_corlate.columns)):
             correlated_features.add(colname)
 X = X.drop(correlated_features, axis=1)
 the_test = the_test.drop(correlated_features, axis=1)
-
+print("no more corelate featchers")
+print(X.shape)
+print(the_test.shape)
 # ------------------------------------------------------------------------ </editor-fold>
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0, stratify=y)
 cv = RepeatedKFold(n_splits=5, n_repeats=2,
@@ -257,6 +261,9 @@ def add_hyper_tuning(the_parameters_to_choose_for_each_model, model, param_grid,
                                 "prediction": prediction,
                                 "prediction_df": prediction_df}
         the_parameters_to_choose_for_each_model[model_name] = inner_parametes_dict
+    a_file = open(os.path.join(PROJECT_DIR, "the_parameters_to_choose_for_each_model.pkl"), "ab")
+    pickle.dump(the_parameters_to_choose_for_each_model, a_file)
+    a_file.close()
     return the_parameters_to_choose_for_each_model
 
 def add_hyper_tuning_lasso_selected(the_parameters_to_choose_for_each_model,model,param_grid,cv):
@@ -280,6 +287,7 @@ def add_hyper_tuning_lasso_selected(the_parameters_to_choose_for_each_model,mode
     pickle.dump(the_parameters_to_choose_for_each_model, a_file)
     a_file.close()
     return the_parameters_to_choose_for_each_model
+
 
 knn = KNeighborsClassifier()
 n_space = list(range(1, 31))
@@ -403,9 +411,7 @@ the_parameters_to_choose_for_each_model["autosklearn"] = {"Parameters": np.nan,
                                                           "prediction": predictions,
                                                           "prediction_df": prediction_df}
 
-a_file = open(os.path.join(PROJECT_DIR, "the_parameters_to_choose_for_each_model.pkl"), "ab")
-pickle.dump(the_parameters_to_choose_for_each_model, a_file)
-a_file.close()
+
 
 # ---------------------------------XGBoost------------------------------- <editor-fold>
 
